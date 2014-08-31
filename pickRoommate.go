@@ -57,7 +57,7 @@ func initPref(count int) {
 
 func main() {
 	rand.Seed(time.Now().Unix() * 123)
-	numPeople := 10000
+	numPeople := 100
 	initPref(numPeople)
 	iterations := 10
 
