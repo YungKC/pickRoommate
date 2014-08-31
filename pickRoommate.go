@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
-	"os"
 	"time"
 )
 
@@ -35,7 +35,7 @@ var pref = map[roommates]int{
 	roommates{0, 9}: 1,
 }
 
-var logger = log.New(os.Stdout, "Log: ", log.Ltime|log.Lshortfile)
+var logger = log.New(ioutil.Discard, "Log: ", log.Ltime|log.Lshortfile)
 
 func initPref(count int) {
 	var weight int
@@ -71,8 +71,11 @@ func main() {
 	for i := 0; i < iterations; i++ {
 		choice := getRandomChoice(numPeople)
 		logger.Println("choice:", choice)
-		//cost, assignment := simpleSelector(choice)
-		cost, assignment := iterateRoommateChoicesSelector(choice)
+
+		selector := iterateRoommateChoicesSelector
+		//selector := simpleSelector
+
+		cost, assignment := selector(choice)
 		if cost < lowestCost {
 			lowestCost = cost
 			finalChoice = choice
@@ -83,6 +86,7 @@ func main() {
 		}
 	}
 	fmt.Println("Final Choice: ", lowestCost, "\n", finalChoice, "\n", finalAssignment)
+
 }
 
 // input assignment

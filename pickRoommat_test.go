@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"testing"
+	"time"
 )
 
 var testLogger = log.New(ioutil.Discard, "Log: ", log.Ltime|log.Lshortfile)
@@ -34,5 +37,41 @@ func TestSlotToRoom(t *testing.T) {
 		if valueToCheck != 1 {
 			t.Error("Expected 1 at ", i, ", got ", valueToCheck)
 		}
+	}
+}
+
+func Benchmark1000RandomSelector(b *testing.B) {
+	benchmark(b, 1000, simpleSelector)
+}
+
+func BenchmarkDeepDiveSelector(b *testing.B) {
+	benchmark(b, 1, iterateRoommateChoicesSelector)
+}
+
+func benchmark(b *testing.B, iterations int, selector func(slotAssignment []int) (int, []roommates)) {
+	b.StopTimer()
+
+	rand.Seed(time.Now().Unix() * 123)
+	numPeople := 1000
+	initPref(numPeople)
+
+	lowestCost := 1000000
+	var finalAssignment []roommates
+	var finalChoice []int
+
+	b.StartTimer()
+
+	for loopCount := 0; loopCount < b.N; loopCount++ {
+		for i := 0; i < iterations; i++ {
+			choice := getRandomChoice(numPeople)
+
+			cost, assignment := selector(choice)
+			if cost < lowestCost {
+				lowestCost = cost
+				finalChoice = choice
+				finalAssignment = assignment
+			}
+		}
+		fmt.Println(lowestCost, finalChoice[0], finalAssignment[0])
 	}
 }
