@@ -48,7 +48,7 @@ func TestIterativeSelector(t *testing.T) {
 	testSelector(t, iterateRoommateChoicesSelector)
 }
 
-func testSelector(t *testing.T, selector func(slotAssignment []int) (int, []roommates)) {
+func testSelector(t *testing.T, selector selectorFunc) {
 	rand.Seed(time.Now().Unix() * 123)
 	numPeople := 200
 	initPref(numPeople)
@@ -72,14 +72,14 @@ func testSelector(t *testing.T, selector func(slotAssignment []int) (int, []room
 }
 
 func Benchmark1000RandomSelector(b *testing.B) {
-	benchmark(b, 1000, simpleSelector)
+	benchmarkSelector(b, 1000, simpleSelector)
 }
 
 func BenchmarkDeepDiveSelector(b *testing.B) {
-	benchmark(b, 1, iterateRoommateChoicesSelector)
+	benchmarkSelector(b, 1, iterateRoommateChoicesSelector)
 }
 
-func benchmark(b *testing.B, iterations int, selector func(slotAssignment []int) (int, []roommates)) {
+func benchmarkSelector(b *testing.B, iterations int, selector selectorFunc) {
 	b.StopTimer()
 
 	rand.Seed(time.Now().Unix() * 123)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -20,6 +21,7 @@ slot1 and slot2 -> room1
 */
 
 type roommates [2]int
+type selectorFunc func(slotAssignment []int) (int, []roommates)
 
 var pref = map[roommates]int{
 	roommates{2, 3}: 1,
@@ -98,6 +100,25 @@ func getCostAndAssignment(slotAssignment []int) (int, []roommates) {
 
 func simpleSelector(slotAssignment []int) (int, []roommates) {
 	return getCostAndAssignment(slotAssignment)
+}
+
+func geneticSelector(numPerson int) (int, []roommates) {
+	numVariations := 10000
+	pq := make(CappedPriorityQueue, 100, 100)
+	heap.Init(&pq)
+	var cost int
+	var solution []roommates
+	for i := 0; i < numVariations; i++ {
+		choice := getRandomChoice(numPerson)
+		cost, solution = getCostAndAssignment(choice)
+		item := &Item{
+			value:    choice,
+			priority: -cost,
+		}
+		heap.Push(&pq, item)
+	}
+	// keep the top 100 solutions
+	return cost, solution
 }
 
 func iterateRoommateChoicesSelector(slotAssignment []int) (int, []roommates) {
