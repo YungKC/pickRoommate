@@ -40,6 +40,37 @@ func TestSlotToRoom(t *testing.T) {
 	}
 }
 
+func TestSimpleSelector(t *testing.T) {
+	testSelector(t, simpleSelector)
+}
+
+func TestIterativeSelector(t *testing.T) {
+	testSelector(t, iterateRoommateChoicesSelector)
+}
+
+func testSelector(t *testing.T, selector func(slotAssignment []int) (int, []roommates)) {
+	rand.Seed(time.Now().Unix() * 123)
+	numPeople := 200
+	initPref(numPeople)
+
+	choice := getRandomChoice(numPeople)
+	_, roomData := selector(choice)
+
+	checkData := make([]int, numPeople)
+	for _, roommates := range roomData {
+		for _, index := range roommates {
+			checkData[index]++
+		}
+	}
+	testLogger.Println(checkData)
+	for i, valueToCheck := range checkData {
+		if valueToCheck != 1 {
+			t.Error("Expected 1 at ", i, ", got ", valueToCheck)
+		}
+	}
+
+}
+
 func Benchmark1000RandomSelector(b *testing.B) {
 	benchmark(b, 1000, simpleSelector)
 }
