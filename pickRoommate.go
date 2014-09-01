@@ -104,21 +104,87 @@ func simpleSelector(slotAssignment []int) (int, []roommates) {
 
 func geneticSelector(numPerson int) (int, []roommates) {
 	numVariations := 10000
-	pq := make(CappedPriorityQueue, 100, 100)
+	choices := make([][]int, numVariations)
+	for i := 0; i < numVariations; i++ {
+		choices[i] = getRandomChoice(numPerson)
+	}
+	bestScore, numTopSolutions, selectedChoices := evaluateGeneration(numVariations, choices)
+
+	for i := 1; i < 1000; i++ {
+		fmt.Println("Generation ", i)
+		choices = getNextGeneration(numPerson, numTopSolutions, numVariations, selectedChoices)
+		fmt.Println(choices[0])
+		bestScore, numTopSolutions, selectedChoices = evaluateGeneration(numVariations, choices)
+	}
+	return bestScore, slotToRoom(selectedChoices[numTopSolutions-1])
+}
+
+func getNextGeneration(numPerson, numTopSolutions int, numVariations int, selectedChoices [][]int) [][]int {
+	// keep the last best 10
+	result := make([][]int, numVariations)
+	for i := 0; i < 10; i++ {
+		result[i] = selectedChoices[numTopSolutions-i-1]
+	}
+	currentCount := 10
+	for i := 0; i < numTopSolutions; i++ {
+		for j := 0; j < numTopSolutions && currentCount < numVariations; j++ {
+			if i == j {
+				continue
+			} else {
+				cutLocation := rand.Intn(numPerson)
+				if cutLocation < 1 {
+					cutLocation = 1
+				}
+				//				fmt.Println("Joining: ", currentCount, cutLocation, i, j)
+				result[currentCount] = append(selectedChoices[i][:cutLocation-1], selectedChoices[j][cutLocation:]...)
+				currentCount++
+			}
+		}
+	}
+	for i := currentCount; i < numVariations; i++ {
+		cutLocation := rand.Intn(numPerson)
+		result[i] = append(selectedChoices[rand.Intn(numTopSolutions)][:cutLocation-1], selectedChoices[rand.Intn(numTopSolutions)][cutLocation:]...)
+	}
+	return result
+}
+
+func evaluateGeneration(numVariations int, choices [][]int) (bestScore int, numReturned int, selectedChoices [][]int) {
+	numTopSolutions := 100
+	pq := make(CappedPriorityQueue, 0, numTopSolutions+1)
 	heap.Init(&pq)
 	var cost int
 	var solution []roommates
 	for i := 0; i < numVariations; i++ {
-		choice := getRandomChoice(numPerson)
+		choice := choices[i]
 		cost, solution = getCostAndAssignment(choice)
 		item := &Item{
 			value:    choice,
-			priority: -cost,
+			priority: cost,
 		}
 		heap.Push(&pq, item)
+		// keep the top 100 solutions
+		if len(pq) > numTopSolutions {
+			heap.Pop(&pq)
+		}
 	}
-	// keep the top 100 solutions
-	return cost, solution
+
+	topChoices := make([][]int, numTopSolutions)
+	index := 0
+	for {
+		result := heap.Pop(&pq)
+		if result == nil {
+			break
+		} else {
+			data := result.(*Item)
+			cost = data.priority
+			topChoices[index] = data.value.([]int)
+			//			fmt.Println(cost)
+		}
+		index++
+	}
+	solution = slotToRoom(topChoices[numTopSolutions-1])
+	fmt.Println("genetic: ", cost, solution)
+	return cost, numTopSolutions, topChoices
 }
 
 func iterateRoommateChoicesSelector(slotAssignment []int) (int, []roommates) {

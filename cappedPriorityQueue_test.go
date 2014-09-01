@@ -30,6 +30,7 @@ func TestCappedPriorityQueue(t *testing.T) {
 
 	}
 	count := 0
+	lastPriority := 99999999
 	for {
 		result := heap.Pop(&pq)
 		if result == nil {
@@ -37,6 +38,11 @@ func TestCappedPriorityQueue(t *testing.T) {
 		} else {
 			data := result.(*Item)
 			fmt.Println("priority: ", data.priority, ", value: ", data.value)
+			if data.priority > lastPriority {
+				t.Error("Priority out of order: ", data.priority, lastPriority)
+			} else {
+				lastPriority = data.priority
+			}
 			count++
 		}
 	}
