@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 // An Item is something we manage in a priority queue.
 type Item struct {
 	value    interface{} // The value of the item; arbitrary.
@@ -16,11 +14,13 @@ type CappedPriorityQueue []*Item
 func (pq CappedPriorityQueue) Len() int { return len(pq) }
 
 func (pq CappedPriorityQueue) Less(i, j int) bool {
+	//	fmt.Println("Less: ", i, j, pq[i].priority, pq[j].priority)
 	// We want Pop to give us the highest, not lowest, priority so we use greater than here.
 	return pq[i].priority > pq[j].priority
 }
 
 func (pq CappedPriorityQueue) Swap(i, j int) {
+	//	fmt.Println("Swap: ", i, j)
 	if i < 0 || j < 0 {
 		return
 	}
@@ -30,22 +30,8 @@ func (pq CappedPriorityQueue) Swap(i, j int) {
 }
 
 func (pq *CappedPriorityQueue) Push(x interface{}) {
-	for _, v := range *pq {
-		fmt.Print(v.priority, " ")
-	}
-	fmt.Println()
-
 	n := len(*pq)
 	item := x.(*Item)
-	if n == cap(*pq) {
-		lastItem := (*pq)[n-1]
-		fmt.Println(lastItem.priority, item.priority)
-		if lastItem.priority > item.priority {
-			(*pq).Pop()
-		} else {
-			return
-		}
-	}
 	item.index = n
 	*pq = append(*pq, item)
 }

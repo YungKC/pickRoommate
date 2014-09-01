@@ -8,10 +8,10 @@ import (
 )
 
 func TestCappedPriorityQueue(t *testing.T) {
-	pq := make(CappedPriorityQueue, 0, 5)
+	pq := make(CappedPriorityQueue, 0, 5+1)
 	fmt.Println("Init...", pq)
 	heap.Init(&pq)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		randNum := rand.Intn(200) - 100
 		item := &Item{
 			value:    randNum,
@@ -19,6 +19,15 @@ func TestCappedPriorityQueue(t *testing.T) {
 		}
 		fmt.Println("Pushing ", item.value)
 		heap.Push(&pq, item)
+		if len(pq) > 5 {
+			heap.Pop(&pq)
+		}
+		fmt.Print("Queue: ")
+		for _, v := range pq {
+			fmt.Print(v.priority, " ")
+		}
+		fmt.Println()
+
 	}
 	count := 0
 	for {
