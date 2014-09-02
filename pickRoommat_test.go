@@ -84,15 +84,17 @@ func Benchmark1KGeneticSelector(b *testing.B) {
 
 func benchmarkSelector(b *testing.B, iterations int, selector selectorFunc) {
 	b.StopTimer()
-	numPeople := 100
+	numPeople := 2000
 	initPref(numPeople)
 	b.StartTimer()
 	var totalCost int
+	var counter int
 	var assignment []roommates
 	for loopCount := 0; loopCount < b.N; loopCount++ {
 		cost, result := selector(numPeople, iterations)
 		assignment = result
 		totalCost = totalCost + cost
+		counter++
 	}
-	fmt.Println("\n Average Cost: ", totalCost/b.N, "\n", assignment)
+	fmt.Println("\n Average Cost: ", totalCost/counter, "\n", assignment)
 }

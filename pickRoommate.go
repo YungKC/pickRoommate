@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
+	"runtime"
 	"time"
 )
 
@@ -41,6 +43,8 @@ var pref = map[roommates]int{
 var logger = log.New(ioutil.Discard, "Log: ", log.Ltime|log.Lshortfile)
 
 func initPref(count int) {
+	runtime.GOMAXPROCS(4)
+	fmt.Println("GOMAXPROCS is ", runtime.GOMAXPROCS(0))
 	rand.Seed(time.Now().Unix() * 123)
 	var weight int
 	for i := 0; i < count; i++ {
@@ -66,11 +70,9 @@ func main() {
 	numPeople := 1000
 	initPref(numPeople)
 
-	choice := getRandomChoice(numPeople)
-	logger.Println("choice:", choice)
-
-	selector := iterateRoommateChoicesSelector
-	cost, assignment := selector(numPeople, 1000)
+	var selectors = []selectorFunc{simpleSelector, iterateRoommateChoicesSelector, geneticSelector}
+	selector := selectors[2]
+	cost, assignment := selector(numPeople, 10000)
 
 	fmt.Println("Final Choice: ", cost, "\n", assignment)
 
@@ -176,7 +178,7 @@ func getNextGeneration(numPerson, numTopSolutions int, numVariations int, select
 }
 
 func evaluateGeneration(numVariations int, choices [][]int) (int, int, [][]int) {
-	numTopSolutions := numVariations / 100
+	numTopSolutions := int(math.Sqrt(float64(numVariations)))
 	if numTopSolutions < 10 {
 		numTopSolutions = 10
 	}
