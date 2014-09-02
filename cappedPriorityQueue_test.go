@@ -17,17 +17,10 @@ func TestCappedPriorityQueue(t *testing.T) {
 			value:    randNum,
 			priority: randNum,
 		}
-		fmt.Println("Pushing ", item.value)
 		heap.Push(&pq, item)
 		if len(pq) > 5 {
 			heap.Pop(&pq)
 		}
-		fmt.Print("Queue: ")
-		for _, v := range pq {
-			fmt.Print(v.priority, " ")
-		}
-		fmt.Println()
-
 	}
 	count := 0
 	lastPriority := 99999999

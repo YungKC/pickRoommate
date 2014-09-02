@@ -21,6 +21,8 @@ slot1 and slot2 -> room1
 */
 
 type roommates [2]int
+type slots []int
+
 type selectorFunc func(slotAssignment []int) (int, []roommates)
 
 var pref = map[roommates]int{
@@ -62,7 +64,7 @@ func initPref(count int) {
 
 func main() {
 	rand.Seed(time.Now().Unix() * 123)
-	numPeople := 100
+	numPeople := 1000
 	initPref(numPeople)
 	iterations := 1
 
@@ -103,14 +105,14 @@ func simpleSelector(slotAssignment []int) (int, []roommates) {
 }
 
 func geneticSelector(numPerson int) (int, []roommates) {
-	numVariations := 1000
+	numVariations := 100
 	choices := make([][]int, numVariations)
 	for i := 0; i < numVariations; i++ {
 		choices[i] = getRandomChoice(numPerson)
 	}
 	bestScore, numTopSolutions, selectedChoices := evaluateGeneration(numVariations, choices)
 
-	for i := 1; i < 10000; i++ {
+	for i := 1; i < 100; i++ {
 		fmt.Println("Generation ", i)
 		choices = getNextGeneration(numPerson, numTopSolutions, numVariations, selectedChoices)
 		//		fmt.Println(choices[0])
@@ -121,53 +123,77 @@ func geneticSelector(numPerson int) (int, []roommates) {
 
 func getNextGeneration(numPerson, numTopSolutions int, numVariations int, selectedChoices [][]int) [][]int {
 
-	//	fmt.Println("GetNextGeneration: ", numTopSolutions, numVariations)
+	fmt.Println("GetNextGeneration: ", numTopSolutions, numVariations)
 	result := make([][]int, numVariations)
 	curIndex := numVariations - 1
-	for i := 0; i < numTopSolutions; i++ {
-		//		fmt.Println(selectedChoices[i])
-	}
 
 	for i := 0; i < numTopSolutions; i++ {
-		//		fmt.Println(i, curIndex, numTopSolutions, len(result), len(selectedChoices))
-		result[curIndex] = selectedChoices[numTopSolutions-1-i]
-		//		fmt.Println("Elite: ", curIndex, result[curIndex])
+		result[curIndex] = make([]int, numPerson)
+		copy(result[curIndex], selectedChoices[numTopSolutions-i-1])
+		//		result[curIndex] = selectedChoices[numTopSolutions-i-1]
+		// apply a mutation here
+		if i > 1 {
+			randomBit := rand.Intn(numPerson)
+			//			fmt.Print(i, curIndex, randomBit, result[curIndex])
+			result[curIndex][randomBit] = rand.Intn(numPerson - randomBit)
+			//			fmt.Println(result[curIndex])
+		}
 		curIndex--
 	}
 	for i := 0; i < numTopSolutions; i++ {
-		for j := 0; j < numTopSolutions && curIndex >= 0; j++ {
+		for j := 0; j < numTopSolutions; j++ {
 			if i == j {
 				continue
 			} else {
-				cutLocation := rand.Intn(numPerson)
+				cutLocation := rand.Intn(numPerson-4) + 1
 				//				fmt.Println("Joining: ", cutLocation, i, j)
 				//				fmt.Println(selectedChoices[i], selectedChoices[j])
-				result[curIndex] = append(selectedChoices[i][:cutLocation+1], selectedChoices[j][cutLocation+1:]...)
-				//				fmt.Println(curIndex, result[curIndex])
+				result[curIndex] = make([]int, numPerson)
+				copy(result[curIndex], selectedChoices[i])
+
+				result[curIndex] = append(result[curIndex][:cutLocation], selectedChoices[j][cutLocation:]...)
+				// apply point mutation here
+				pointMutation := rand.Intn(numPerson)
+				result[curIndex][pointMutation] = rand.Intn(numPerson - pointMutation)
+				//				fmt.Println(result[curIndex])
 				curIndex--
 			}
 		}
 	}
 	for i := curIndex; i >= 0; i-- {
-		cutLocation := rand.Intn(numPerson)
-		result[i] = append(selectedChoices[rand.Intn(numTopSolutions)][:cutLocation+1], selectedChoices[rand.Intn(numTopSolutions)][cutLocation+1:]...)
-		//		fmt.Println(i, result[i])
+		cutLocation := rand.Intn(numPerson-4) + 2
+		result[i] = make([]int, numPerson)
+		copy(result[i], selectedChoices[rand.Intn(numVariations)])
+		result[i] = append(result[i][:cutLocation+1], selectedChoices[rand.Intn(numVariations)][cutLocation+1:]...)
+		// apply point mutation here
+		pointMutation := rand.Intn(numPerson)
+		result[i][pointMutation] = rand.Intn(numPerson - pointMutation)
+
 	}
+	//	for i := 0; i < numVariations; i++ {
+	//		fmt.Println(i, result[i])
+	//	}
 	return result
 }
 
 func evaluateGeneration(numVariations int, choices [][]int) (int, int, [][]int) {
 	numTopSolutions := numVariations / 100
-	if numTopSolutions < 100 {
-		numTopSolutions = 100
+	if numTopSolutions < 10 {
+		numTopSolutions = 10
 	}
 	pq := make(CappedPriorityQueue, 0, numTopSolutions+1)
 	heap.Init(&pq)
+	lowestCost := 9999999
 	var cost int
 	//var solution []roommates
+	//	fmt.Println("EvaluateGeneration")
 	for i := 0; i < numVariations; i++ {
 		choice := choices[i]
 		cost, _ = getCostAndAssignment(choice)
+		//		fmt.Println(i, cost, choice)
+		if cost < lowestCost {
+			lowestCost = cost
+		}
 		item := &Item{
 			value:    choice,
 			priority: cost,
@@ -189,12 +215,12 @@ func evaluateGeneration(numVariations int, choices [][]int) (int, int, [][]int) 
 			data := result.(*Item)
 			cost = data.priority
 			topChoices[index] = data.value.([]int)
-			//			fmt.Println(cost)
+			//			fmt.Println(index, cost, topChoices[index])
 		}
 		index++
 	}
 	//	solution = slotToRoom(topChoices[numTopSolutions-1])
-	fmt.Println("genetic: ", cost)
+	fmt.Println("genetic: ", cost, lowestCost)
 	//fmt.Println("topChoice: ", topChoices[numTopSolutions-1])
 	return cost, numTopSolutions, topChoices
 }
