@@ -42,7 +42,7 @@ func TestSlotToRoom(t *testing.T) {
 
 func TestGeneticSelector(t *testing.T) {
 	rand.Seed(time.Now().Unix() * 123)
-	numPeople := 20
+	numPeople := 500
 	initPref(numPeople)
 	geneticSelector(numPeople)
 }
