@@ -67,15 +67,19 @@ func initPref(count int) {
 }
 
 func main() {
-	numPeople := 1000
+	numPeople := 10000
 	initPref(numPeople)
 
 	var selectors = []selectorFunc{simpleSelector, iterateRoommateChoicesSelector, geneticSelector}
-	selector := selectors[2]
-	cost, assignment := selector(numPeople, 10000)
+	var iterations = []int{100000, 1, 1000}
 
-	fmt.Println("Final Choice: ", cost, "\n", assignment)
-
+	fmt.Println("Running simulated with ", numPeople, " people with iteration count of ", iterations)
+	for i, selector := range selectors {
+		startTime := time.Now()
+		cost, assignment := selector(numPeople, iterations[i])
+		fmt.Println(time.Since(startTime))
+		fmt.Println("Final Choice: ", cost, "\n", assignment)
+	}
 }
 
 // input assignment
