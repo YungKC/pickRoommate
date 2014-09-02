@@ -21,9 +21,8 @@ slot1 and slot2 -> room1
 */
 
 type roommates [2]int
-type slots []int
 
-type selectorFunc func(slotAssignment []int) (int, []roommates)
+type selectorFunc func(numPerson int, numIterations int) (int, []roommates)
 
 var pref = map[roommates]int{
 	roommates{2, 3}: 1,
@@ -42,6 +41,7 @@ var pref = map[roommates]int{
 var logger = log.New(ioutil.Discard, "Log: ", log.Ltime|log.Lshortfile)
 
 func initPref(count int) {
+	rand.Seed(time.Now().Unix() * 123)
 	var weight int
 	for i := 0; i < count; i++ {
 		for j := i + 1; j < count; j++ {
@@ -63,33 +63,16 @@ func initPref(count int) {
 }
 
 func main() {
-	rand.Seed(time.Now().Unix() * 123)
 	numPeople := 1000
 	initPref(numPeople)
-	iterations := 1
 
-	lowestCost := 1000000
-	var finalAssignment []roommates
-	var finalChoice []int
+	choice := getRandomChoice(numPeople)
+	logger.Println("choice:", choice)
 
-	for i := 0; i < iterations; i++ {
-		choice := getRandomChoice(numPeople)
-		logger.Println("choice:", choice)
+	selector := iterateRoommateChoicesSelector
+	cost, assignment := selector(numPeople, 1000)
 
-		selector := iterateRoommateChoicesSelector
-		//selector := simpleSelector
-
-		cost, assignment := selector(choice)
-		if cost < lowestCost {
-			lowestCost = cost
-			finalChoice = choice
-			finalAssignment = assignment
-		}
-		if i%100 == 0 {
-			logger.Println("cost:  ", i, cost, lowestCost)
-		}
-	}
-	fmt.Println("Final Choice: ", lowestCost, "\n", finalChoice, "\n", finalAssignment)
+	fmt.Println("Final Choice: ", cost, "\n", assignment)
 
 }
 
@@ -100,11 +83,25 @@ func getCostAndAssignment(slotAssignment []int) (int, []roommates) {
 	return cost, roomAssignment
 }
 
-func simpleSelector(slotAssignment []int) (int, []roommates) {
-	return getCostAndAssignment(slotAssignment)
+func simpleSelector(numPerson int, numIterations int) (int, []roommates) {
+	lowestCost := 1000000
+	var finalAssignment []roommates
+
+	for i := 0; i < numIterations; i++ {
+		slotAssignment := getRandomChoice(numPerson)
+		cost, assignment := getCostAndAssignment(slotAssignment)
+		if cost < lowestCost {
+			lowestCost = cost
+			finalAssignment = assignment
+		}
+		if i%100 == 0 {
+			logger.Println("cost:  ", i, cost, lowestCost)
+		}
+	}
+	return lowestCost, finalAssignment
 }
 
-func geneticSelector(numPerson int) (int, []roommates) {
+func geneticSelector(numPerson int, numIterations int) (int, []roommates) {
 	numVariations := 100
 	choices := make([][]int, numVariations)
 	for i := 0; i < numVariations; i++ {
@@ -112,18 +109,20 @@ func geneticSelector(numPerson int) (int, []roommates) {
 	}
 	bestScore, numTopSolutions, selectedChoices := evaluateGeneration(numVariations, choices)
 
-	for i := 1; i < 100; i++ {
-		fmt.Println("Generation ", i)
+	for i := 1; i < numIterations; i++ {
+		//		fmt.Println("Generation ", i)
 		choices = getNextGeneration(numPerson, numTopSolutions, numVariations, selectedChoices)
 		//		fmt.Println(choices[0])
 		bestScore, numTopSolutions, selectedChoices = evaluateGeneration(numVariations, choices)
 	}
-	return bestScore, slotToRoom(selectedChoices[numTopSolutions-1])
+	bestSolution := slotToRoom(selectedChoices[numTopSolutions-1])
+	//	fmt.Println("Genetic: \n", bestScore, bestSolution)
+	return bestScore, bestSolution
 }
 
 func getNextGeneration(numPerson, numTopSolutions int, numVariations int, selectedChoices [][]int) [][]int {
 
-	fmt.Println("GetNextGeneration: ", numTopSolutions, numVariations)
+	//	fmt.Println("GetNextGeneration: ", numTopSolutions, numVariations)
 	result := make([][]int, numVariations)
 	curIndex := numVariations - 1
 
@@ -220,12 +219,14 @@ func evaluateGeneration(numVariations int, choices [][]int) (int, int, [][]int) 
 		index++
 	}
 	//	solution = slotToRoom(topChoices[numTopSolutions-1])
-	fmt.Println("genetic: ", cost, lowestCost)
+	//	fmt.Println("genetic: ", cost, lowestCost)
 	//fmt.Println("topChoice: ", topChoices[numTopSolutions-1])
 	return cost, numTopSolutions, topChoices
 }
 
-func iterateRoommateChoicesSelector(slotAssignment []int) (int, []roommates) {
+func iterateRoommateChoicesSelector(numPerson int, numIterations int) (int, []roommates) {
+	// numIterations is ignored since we will iterate through implicitly
+	slotAssignment := getRandomChoice(numPerson)
 	bestCost, bestRoommateAssignment := getCostAndAssignment(slotAssignment)
 	workingRoommateAssignment := make([]roommates, len(bestRoommateAssignment))
 

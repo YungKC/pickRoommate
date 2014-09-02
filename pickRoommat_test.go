@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"testing"
-	"time"
 )
 
 var testLogger = log.New(ioutil.Discard, "Log: ", log.Ltime|log.Lshortfile)
@@ -41,27 +39,22 @@ func TestSlotToRoom(t *testing.T) {
 }
 
 func TestGeneticSelector(t *testing.T) {
-	rand.Seed(time.Now().Unix() * 123)
-	numPeople := 1000
-	initPref(numPeople)
-	geneticSelector(numPeople)
+	testSelector(t, geneticSelector, 1000)
 }
 
 func TestSimpleSelector(t *testing.T) {
-	testSelector(t, simpleSelector)
+	testSelector(t, simpleSelector, 10000)
 }
 
 func TestIterativeSelector(t *testing.T) {
-	testSelector(t, iterateRoommateChoicesSelector)
+	testSelector(t, iterateRoommateChoicesSelector, 1)
 }
 
-func testSelector(t *testing.T, selector selectorFunc) {
-	rand.Seed(time.Now().Unix() * 123)
+func testSelector(t *testing.T, selector selectorFunc, numIterations int) {
 	numPeople := 200
 	initPref(numPeople)
 
-	choice := getRandomChoice(numPeople)
-	_, roomData := selector(choice)
+	_, roomData := selector(numPeople, numIterations)
 
 	checkData := make([]int, numPeople)
 	for _, roommates := range roomData {
@@ -75,41 +68,31 @@ func testSelector(t *testing.T, selector selectorFunc) {
 			t.Error("Expected 1 at ", i, ", got ", valueToCheck)
 		}
 	}
-
 }
 
-func Benchmark1000RandomSelector(b *testing.B) {
-	benchmarkSelector(b, 1000, simpleSelector)
+func Benchmark100KRandomSelector(b *testing.B) {
+	benchmarkSelector(b, 100000, simpleSelector)
 }
 
 func BenchmarkDeepDiveSelector(b *testing.B) {
 	benchmarkSelector(b, 1, iterateRoommateChoicesSelector)
 }
 
+func Benchmark1KGeneticSelector(b *testing.B) {
+	benchmarkSelector(b, 1000, geneticSelector)
+}
+
 func benchmarkSelector(b *testing.B, iterations int, selector selectorFunc) {
 	b.StopTimer()
-
-	rand.Seed(time.Now().Unix() * 123)
-	numPeople := 1000
+	numPeople := 100
 	initPref(numPeople)
-
-	lowestCost := 1000000
-	var finalAssignment []roommates
-	var finalChoice []int
-
 	b.StartTimer()
-
+	var totalCost int
+	var assignment []roommates
 	for loopCount := 0; loopCount < b.N; loopCount++ {
-		for i := 0; i < iterations; i++ {
-			choice := getRandomChoice(numPeople)
-
-			cost, assignment := selector(choice)
-			if cost < lowestCost {
-				lowestCost = cost
-				finalChoice = choice
-				finalAssignment = assignment
-			}
-		}
-		fmt.Println(lowestCost, finalChoice[0], finalAssignment[0])
+		cost, result := selector(numPeople, iterations)
+		assignment = result
+		totalCost = totalCost + cost
 	}
+	fmt.Println("\n Average Cost: ", totalCost/b.N, "\n", assignment)
 }
