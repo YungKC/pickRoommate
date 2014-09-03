@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/rand"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -67,19 +68,27 @@ func initPref(count int) {
 }
 
 func main() {
-	numPeople := 10000
+	numPeople := 100
 	initPref(numPeople)
 
 	var selectors = []selectorFunc{simpleSelector, iterateRoommateChoicesSelector, geneticSelector}
 	var iterations = []int{100000, 1, 1000}
 
+	waitGroup := new(sync.WaitGroup)
+
 	fmt.Println("Running simulated with ", numPeople, " people with iteration count of ", iterations)
 	for i, selector := range selectors {
-		startTime := time.Now()
-		cost, assignment := selector(numPeople, iterations[i])
-		fmt.Println(time.Since(startTime))
-		fmt.Println("Final Choice: ", cost, "\n", assignment)
+		waitGroup.Add(1)
+		go selectorJob(i, selector, numPeople, iterations[i], waitGroup)
 	}
+	waitGroup.Wait()
+}
+
+func selectorJob(index int, selector selectorFunc, numPeople int, numIterations int, waitGroup *sync.WaitGroup) {
+	defer (*waitGroup).Done()
+	startTime := time.Now()
+	cost, assignment := selector(numPeople, numIterations)
+	fmt.Println(index, ": ", cost, "in", time.Since(startTime), "\n", assignment)
 }
 
 // input assignment
@@ -108,7 +117,12 @@ func simpleSelector(numPerson int, numIterations int) (int, []roommates) {
 }
 
 func geneticSelector(numPerson int, numIterations int) (int, []roommates) {
-	numVariations := 100
+	numVariations := numPerson
+	if numVariations < 100 {
+		numVariations = 100
+	}
+	numVariations = 100
+
 	choices := make([][]int, numVariations)
 	for i := 0; i < numVariations; i++ {
 		choices[i] = getRandomChoice(numPerson)
